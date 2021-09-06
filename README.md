@@ -11,6 +11,12 @@ How to Use
 
     Advatek::Poll();
 
+Dependency
+==========
+
+  - [ofxNetwork]
+
 [Advatek Pixel Controllers]: https://www.advateklights.com/products/pixel-control
 [ofxImGUI]: https://github.com/jvcleave/ofxImGui
 [ofxAdvatekAssistant]: https://github.com/ofxyz/ofxAdvatekAssistant/
+[ofxNetwork]: https://github.com/openframeworks/openFrameworks/tree/master/addons/ofxNetwork
