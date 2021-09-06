@@ -19,6 +19,7 @@ public:
     ~ofxAdvatekAssistor(){};
     
     void setup();
+    void update();
     void poll();
 
 private:

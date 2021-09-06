@@ -3,6 +3,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+    ofSetLogLevel(OF_LOG_VERBOSE);
     AdvatekAssist.setup();
 }
 
@@ -13,7 +14,7 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    ofDrawBitmapString("Press Any Key to Poll ...", 100, 100);
+    ofDrawBitmapString("Press Any Key to Poll...", 50, 50);
 }
 
 //--------------------------------------------------------------
