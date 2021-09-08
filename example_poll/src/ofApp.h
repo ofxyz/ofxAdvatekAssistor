@@ -21,4 +21,5 @@ class ofApp: public ofBaseApp{
 		void gotMessage(ofMessage msg);
 		
 		ofxAdvatekAssistor AdvatekAssist;
+		vector<T_AdvatekDevice*> devices;
 };

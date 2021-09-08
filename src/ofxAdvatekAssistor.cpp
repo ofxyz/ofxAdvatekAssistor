@@ -1,6 +1,6 @@
 #include "ofxAdvatekAssistor.h"
 
-const char* RGBW_Order[24] = {
+const char* ofxAdvatekAssistor::RGBW_Order[24] = {
 		"R-G-B/R-G-B-W",
 		"R-B-G/R-B-G-W",
 		"G-R-B/G-R-B-W",
@@ -27,13 +27,13 @@ const char* RGBW_Order[24] = {
 		"W-B-G-R"
 };
 
-const char* DriverTypes[3] = {
+const char* ofxAdvatekAssistor::DriverTypes[3] = {
 		"RGB only",
 		"RGBW only",
 		"Either RGB or RGBW"
 };
 
-const char* DriverSpeeds[5] = {
+const char* ofxAdvatekAssistor::DriverSpeeds[5] = {
 	"N/A (single fixed speed)",
 	"Slow only (data only driver, fixed at the slow speed)",
 	"Fast only (data only driver, fixed at the fast speed)",
@@ -41,7 +41,7 @@ const char* DriverSpeeds[5] = {
 	"Adjustable clock speed"
 };
 
-const char* DriverSpeedsMhz[12] = {
+const char* ofxAdvatekAssistor::DriverSpeedsMhz[12] = {
 	"0.4 MHz", // Data Only Slow
 	"0.6 MHz", // Data Only Fast
 	"0.8 MHz",
@@ -56,7 +56,7 @@ const char* DriverSpeedsMhz[12] = {
 	"2.9 MHz"
 };
 
-const char* TestModes[9] = {
+const char* ofxAdvatekAssistor::TestModes[9] = {
 	"None(Live Control Data)",
 	"RGBW Cycle",
 	"Red",
@@ -87,522 +87,563 @@ void ofxAdvatekAssistor::update() {
 	//std::cout << "Packet Size: " << newMessage << std::endl;
 	//std::cout << "UDP Packet: " << std::endl;
 
-	if (newMessage > 1) {
-
-		std::cout << "===================================================" << std::endl;
-
-		/*for (int i = 0; i < newMessage; i++) {
-			printf("0x%02X", (unsigned char)udpMessage[i]);
-		}
-		printf("\n");*/
+	if (newMessage > 1) { // we have data
+		
 		char ID[9];
 		uint8_t* data = (uint8_t*)udpMessage;
 		memcpy(ID, data, sizeof(uint8_t) * 9);
 		data += 9;
-		std::cout << "ID: " << ID << std::endl;
+		//std::cout << "ID: " << ID << std::endl;
+		
+		string sid;
+		for (int i(0); i < 8; i++) { sid += ID[i]; }
+		if( sid.compare("Advatech") != 0) return;
 		
 		//--------
 		
-		uint16_t OpCodes;// = (uint16_t)data;
+		uint16_t OpCodes;
 		memcpy(&OpCodes, data, sizeof(uint16_t));
 		data += 2;
 		// Swap bytes
 		OpCodes = ((OpCodes & 0xff) << 8) | ((OpCodes & 0xff00) >> 8);
-		std::cout << "messageType: " << OpCodes << std::endl;
+		//std::cout << "messageType: " << OpCodes << std::endl;
 
-		if (OpCodes == 1) return;
+		// Only process OpPollReply
+		if (OpCodes != 2) return;
+
+		sAdvatekDevice * rec_data = new sAdvatekDevice();
 
 		//--------
 
-		uint8_t ProtVer;
-		memcpy(&ProtVer, data, sizeof(uint8_t));
+		//uint8_t ProtVer;
+		memcpy(&rec_data->ProtVer, data, sizeof(uint8_t));
 		data += 1;
-		std::cout << "ProtVer: " << (int)ProtVer << std::endl;
+		//std::cout << "ProtVer: " << (int)rec_data->ProtVer << std::endl;
 		
 		//--------
 
-		uint8_t CurrentProtVer;
-		memcpy(&CurrentProtVer, data, sizeof(uint8_t));
+		//uint8_t CurrentProtVer;
+		memcpy(&rec_data->CurrentProtVer, data, sizeof(uint8_t));
 		data += 1;
-		std::cout << "CurrentProtVer: " << (int)CurrentProtVer << std::endl;
+		//std::cout << "CurrentProtVer: " << (int)rec_data->CurrentProtVer << std::endl;
 
 		//--------
 
-		uint8_t MAC[6];
-		memcpy(MAC, data, sizeof(uint8_t) * 6);
+		//uint8_t MAC[6];
+		memcpy(rec_data->Mac, data, 6);
 		data += 6;
 
 		std::stringstream ss;
 		ss << std::hex << std::setfill('0');
 
 		for (int i(0); i < 6; i++) {
-			ss << std::hex << std::setw(2) << static_cast<int>(MAC[i]);
+			ss << std::hex << std::setw(2) << static_cast<int>(rec_data->Mac[i]);
 			if(i < 5) ss << ":";
 		}
 
 		string macAddress = ss.str();
-		std::cout << "MAC Address: " << macAddress << std::endl;
+		//std::cout << "MAC Address: " << macAddress << std::endl;
 
 		//--------
 
-		uint8_t LENGTH_MODEL;
-		memcpy(&LENGTH_MODEL, data, sizeof(uint8_t));
+		//uint8_t LENGTH_MODEL;
+		memcpy(&rec_data->ModelLength, data, sizeof(uint8_t));
 		data += 1;
 		//std::cout << "LENGHT_MODEL: " << (int)LENGTH_MODEL << std::endl;
 
-		uint8_t* MODEL_NAME = new uint8_t[LENGTH_MODEL];
-		memcpy(MODEL_NAME, data, sizeof(uint8_t)*LENGTH_MODEL);
-		data += LENGTH_MODEL;
-		std::cout << "MODEL_NAME: " << MODEL_NAME << std::endl;
+		//uint8_t* MODEL_NAME = new uint8_t[LENGTH_MODEL];
+		rec_data->Model = new uint8_t[rec_data->ModelLength];
+		memcpy(rec_data->Model, data, sizeof(uint8_t)*rec_data->ModelLength);
+		data += rec_data->ModelLength;
+		//std::cout << "MODEL_NAME: " << rec_data->Model << std::endl;
 
 		//--------
 
-		uint8_t HwRev;
-		memcpy(&HwRev, data, sizeof(uint8_t));
+		//uint8_t HwRev;
+		memcpy(&rec_data->HwRev, data, sizeof(uint8_t));
 		data += 1;
-		std::cout << "HwRev: " << "V" << ((float)HwRev/10.f) << std::endl;
+		//std::cout << "HwRev: " << "V" << ((float)rec_data->HwRev / 10.f) << std::endl;
 
 		//--------
 
-		uint8_t MinAssistantVer[3];
-		memcpy(MinAssistantVer, data, sizeof(uint8_t) * 3);
+		//uint8_t MinAssistantVer[3];
+		memcpy(rec_data->MinAssistantVer, data, sizeof(uint8_t) * 3);
 		data += 3;
 
-		std::cout << "MinAssistantVer: " << "V" << (int)MinAssistantVer[0] << "." << (int)MinAssistantVer[1] << "." << (int)MinAssistantVer[2] << std::endl;
+		//std::cout << "MinAssistantVer: " << "V" << (int)rec_data->MinAssistantVer[0] << "." << (int)rec_data->MinAssistantVer[1] << "." << (int)rec_data->MinAssistantVer[2] << std::endl;
 
 		//--------
 
-		uint8_t LENGTH_FW;
-		memcpy(&LENGTH_FW, data, sizeof(uint8_t));
+		//uint8_t LENGTH_FW;
+		memcpy(&rec_data->LenFirmware, data, sizeof(uint8_t));
 		data += 1;
 		//std::cout << "LENGTH_FW: " << (int)LENGTH_FW << std::endl;
 
-		uint8_t* FirmWare = new uint8_t[LENGTH_FW];
-		memcpy(FirmWare, data, sizeof(uint8_t)*LENGTH_FW);
-		data += LENGTH_FW;
-		std::cout << "FirmWare: " << FirmWare << std::endl;
+		//uint8_t* FirmWare = new uint8_t[rec_data->LenFirmware];
+		rec_data->Firmware = new uint8_t[rec_data->LenFirmware];
+		memcpy(rec_data->Firmware, data, sizeof(uint8_t)*rec_data->LenFirmware);
+		data += rec_data->LenFirmware;
+		//std::cout << "FirmWare: " << rec_data->Firmware << std::endl;
 		
 		//--------
 		// BRAND: OEM Code, not needed
+		memcpy(&rec_data->Brand, data, sizeof(uint8_t));
 		data += 1;
 
 		//--------
 
-		uint8_t CurrentIP[4];
-		memcpy(CurrentIP, data, sizeof(uint8_t) * 4);
+		//uint8_t CurrentIP[4];
+		memcpy(rec_data->CurrentIP, data, sizeof(uint8_t) * 4);
 		data += 4;
 		
-		std::cout << "CurrentIP: " << (int)CurrentIP[0] << "." << (int)CurrentIP[1] << "." << (int)CurrentIP[2] << "." << (int)CurrentIP[3] << std::endl;
+		//std::cout << "CurrentIP: " << (int)rec_data->CurrentIP[0] << "." << (int)rec_data->CurrentIP[1] << "." << (int)rec_data->CurrentIP[2] << "." << (int)rec_data->CurrentIP[3] << std::endl;
 
 		//--------
 
-		uint8_t CurrentSM[4];
-		memcpy(CurrentSM, data, sizeof(uint8_t) * 4);
+		//uint8_t CurrentSM[4];
+		memcpy(rec_data->CurrentSM, data, sizeof(uint8_t) * 4);
 		data += 4;
 
-		std::cout << "CurrentSM: " << (int)CurrentSM[0] << "." << (int)CurrentSM[1] << "." << (int)CurrentSM[2] << "." << (int)CurrentSM[3] << std::endl;
+		//std::cout << "CurrentSM: " << (int)rec_data->CurrentSM[0] << "." << (int)rec_data->CurrentSM[1] << "." << (int)rec_data->CurrentSM[2] << "." << (int)rec_data->CurrentSM[3] << std::endl;
 
 		//--------
 
-		uint8_t DHCP;
-		memcpy(&DHCP, data, sizeof(uint8_t));
+		//uint8_t DHCP;
+		memcpy(&rec_data->DHCP, data, sizeof(uint8_t));
 		data += 1;
-		std::cout << "DHCP: " << ((DHCP)?"On":"Off") << std::endl;
+		//std::cout << "DHCP: " << ((rec_data->DHCP)?"On":"Off") << std::endl;
 
 		//--------
 
-		uint8_t StaticIP[4];
-		memcpy(StaticIP, data, sizeof(uint8_t) * 4);
+		//uint8_t StaticIP[4];
+		memcpy(rec_data->StaticIP, data, sizeof(uint8_t) * 4);
 		data += 4;
 
-		std::cout << "StaticIP: " << (int)StaticIP[0] << "." << (int)StaticIP[1] << "." << (int)StaticIP[2] << "." << (int)StaticIP[3] << std::endl;
+		//std::cout << "StaticIP: " << (int)rec_data->StaticIP[0] << "." << (int)rec_data->StaticIP[1] << "." << (int)rec_data->StaticIP[2] << "." << (int)rec_data->StaticIP[3] << std::endl;
 
 		//--------
 
-		uint8_t StaticSM[4];
-		memcpy(StaticSM, data, sizeof(uint8_t) * 4);
+		//uint8_t StaticSM[4];
+		memcpy(rec_data->StaticSM, data, sizeof(uint8_t) * 4);
 		data += 4;
 
-		std::cout << "StaticSM: " << (int)StaticSM[0] << "." << (int)StaticSM[1] << "." << (int)StaticSM[2] << "." << (int)StaticSM[3] << std::endl;
+		//std::cout << "StaticSM: " << (int)rec_data->StaticSM[0] << "." << (int)rec_data->StaticSM[1] << "." << (int)rec_data->StaticSM[2] << "." << (int)rec_data->StaticSM[3] << std::endl;
 
 		//--------
 
-		uint8_t Protocol;
-		memcpy(&Protocol, data, sizeof(uint8_t));
+		//uint8_t Protocol;
+		memcpy(&rec_data->Protocol, data, sizeof(uint8_t));
 		data += 1;
-		std::cout << "Protocol: " << ((Protocol) ? "ArtNet" : "sACN") << std::endl;
+		//std::cout << "Protocol: " << ((rec_data->Protocol) ? "ArtNet" : "sACN") << std::endl;
 
 		//--------
-		uint8_t holdLastFrame;
-		memcpy(&holdLastFrame, data, sizeof(uint8_t));
+		//uint8_t holdLastFrame;
+		memcpy(&rec_data->HoldLastFrame, data, sizeof(uint8_t));
 		data += 1;
-		std::cout << "holdLastFrame: " << ((holdLastFrame) ? "True" : "False") << std::endl;
+		//std::cout << "holdLastFrame: " << ((rec_data->HoldLastFrame) ? "True" : "False") << std::endl;
 
 		//--------
 		// SimpleConfig: not needed
+		memcpy(&rec_data->SimpleConfig, data, sizeof(uint8_t));
 		data += 1;
 		
 		//--------
 		
-		uint16_t maxPixPerOutput;
-		memcpy(&maxPixPerOutput, data, sizeof(uint16_t));
+		//uint16_t maxPixPerOutput;
+		memcpy(&rec_data->MaxPixPerOutput, data, sizeof(uint16_t));
 		data += 2;
 
 		// Swap bytes
-		maxPixPerOutput = ((maxPixPerOutput & 0xff) << 8) | ((maxPixPerOutput & 0xff00) >> 8);
+		rec_data->MaxPixPerOutput = ((rec_data->MaxPixPerOutput & 0xff) << 8) | ((rec_data->MaxPixPerOutput & 0xff00) >> 8);
 
-		std::cout << "maxPixPerOutput: " << (int)maxPixPerOutput << std::endl;
+		//std::cout << "MaxPixPerOutput: " << (int)rec_data->MaxPixPerOutput << std::endl;
 
 		//--------
 
-		uint8_t NUM_OUTPUTS;
-		memcpy(&NUM_OUTPUTS, data, sizeof(uint8_t));
+		//uint8_t NUM_OUTPUTS;
+		memcpy(&rec_data->NumOutputs, data, sizeof(uint8_t));
 		data += 1;
 		//std::cout << "NUM_OUTPUTS: " << (int)NUM_OUTPUTS << std::endl;
 
 		//--------
 
-		uint16_t* OutputPixels = new uint16_t[NUM_OUTPUTS];
-		memcpy(OutputPixels, data, sizeof(uint16_t)*NUM_OUTPUTS);
-		data += (NUM_OUTPUTS*2);
+		rec_data->OutputPixels = new uint16_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputPixels, data, sizeof(uint16_t)*rec_data->NumOutputs);
+		data += (rec_data->NumOutputs *2);
 
-		std::cout << "OutputPixels: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			OutputPixels[i] = ((OutputPixels[i] & 0xff) << 8) | ((OutputPixels[i] & 0xff00) >> 8);
-			std::cout << i << ":" << (int)OutputPixels[i] << " ";
-		}
-		std::cout << std::endl;
-
-		//--------
-
-		uint16_t* OutputUniv = new uint16_t[NUM_OUTPUTS];
-		memcpy(OutputUniv, data, sizeof(uint16_t)*NUM_OUTPUTS);
-		data += (NUM_OUTPUTS * 2);
-
-		std::cout << "OutputUniverse: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			OutputUniv[i] = ((OutputUniv[i] & 0xff) << 8) | ((OutputUniv[i] & 0xff00) >> 8);
-			std::cout << i << ":" << (int)OutputUniv[i] << " ";
-		}
-		std::cout << std::endl;
-
-		//--------
-
-		uint16_t* OutputChan = new uint16_t[NUM_OUTPUTS];
-		memcpy(OutputChan, data, sizeof(uint16_t)*NUM_OUTPUTS);
-		data += (NUM_OUTPUTS * 2);
-
-		std::cout << "OutputChannel: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			OutputChan[i] = ((OutputChan[i] & 0xff) << 8) | ((OutputChan[i] & 0xff00) >> 8);
-			std::cout << i << ":" << (int)OutputChan[i] << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-		
-		uint8_t* outputNull = new uint8_t[NUM_OUTPUTS];
-		memcpy(outputNull, data, sizeof(uint8_t)*NUM_OUTPUTS);
-		data += NUM_OUTPUTS;
-		
-		std::cout << "OutputNull: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			std::cout << i << ":" << (int)outputNull[i] << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint16_t* OutputZig = new uint16_t[NUM_OUTPUTS];
-		memcpy(OutputZig, data, sizeof(uint16_t)*NUM_OUTPUTS);
-		data += (NUM_OUTPUTS * 2);
-
-		std::cout << "OutputZigZag: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			OutputZig[i] = ((OutputZig[i] & 0xff) << 8) | ((OutputZig[i] & 0xff00) >> 8);
-			std::cout << i << ":" << (int)OutputZig[i] << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint8_t* outputReverse = new uint8_t[NUM_OUTPUTS];
-		memcpy(outputReverse, data, sizeof(uint8_t)*NUM_OUTPUTS);
-		data += NUM_OUTPUTS;
-
-		std::cout << "outputReverse: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			std::cout << i << ":" << (((int)outputReverse[i])?"True":"False") << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint8_t* outputColOrder = new uint8_t[NUM_OUTPUTS];
-		memcpy(outputColOrder, data, sizeof(uint8_t)*NUM_OUTPUTS);
-		data += NUM_OUTPUTS;
-
-		std::cout << "outputColOrder: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			std::cout << i << ":" << RGBW_Order[(int)outputColOrder[i]] << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint16_t* OutputGrouping = new uint16_t[NUM_OUTPUTS];
-		memcpy(OutputGrouping, data, sizeof(uint16_t)*NUM_OUTPUTS);
-		data += (NUM_OUTPUTS * 2);
-
-		std::cout << "OutputGrouping: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			OutputGrouping[i] = ((OutputGrouping[i] & 0xff) << 8) | ((OutputGrouping[i] & 0xff00) >> 8);
-			std::cout << i << ":" << (int)OutputGrouping[i] << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint8_t* OutputBrightness = new uint8_t[NUM_OUTPUTS];
-		memcpy(OutputBrightness, data, sizeof(uint8_t)*NUM_OUTPUTS);
-		data += NUM_OUTPUTS;
-
-		std::cout << "OutputBrightness: ";
-		for (int i(0); i < (int)NUM_OUTPUTS; i++) {
-			std::cout << i << ":" << (int)OutputBrightness[i] << " ";
-		}
-		std::cout << std::endl;
-
-		//--------
-
-		uint8_t NUM_DMX_OUT;
-		memcpy(&NUM_DMX_OUT, data, sizeof(uint8_t));
-		data += 1;
-		//std::cout << "NUM_DMX_OUT: " << (int)NUM_DMX_OUT << std::endl;
-
-		//--------
-
-		uint8_t ProtocolsOnDmxOut;
-		memcpy(&ProtocolsOnDmxOut, data, sizeof(uint8_t));
-		data += 1;
-		std::cout << "ProtocolsOnDmxOut: " << ((ProtocolsOnDmxOut && 0x01) ? "ArtNet" : "") << ((ProtocolsOnDmxOut<<1 && 0x01) ? ", sACN" : "") << std::endl;
-
-		//---------
-
-		uint8_t* DmxOutOn = new uint8_t[NUM_DMX_OUT];
-		memcpy(DmxOutOn, data, sizeof(uint8_t)*NUM_DMX_OUT);
-		data += NUM_DMX_OUT;
-
-		std::cout << "DmxOutOn: ";
-		for (int i(0); i < (int)NUM_DMX_OUT; i++) {
-			std::cout << i << ":" << (((int)DmxOutOn[i]) ? "On" : "Off") << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint16_t* DmxOutUniv = new uint16_t[NUM_DMX_OUT];
-		memcpy(DmxOutUniv, data, sizeof(uint16_t)*NUM_DMX_OUT);
-		data += (NUM_DMX_OUT*2);
-
-		std::cout << "DmxOutUniv: ";
-		for (int i(0); i < (int)NUM_DMX_OUT; i++) {
-			DmxOutUniv[i] = ((DmxOutUniv[i] & 0xff) << 8) | ((DmxOutUniv[i] & 0xff00) >> 8);
-			std::cout << i << ":" << (int)DmxOutUniv[i] << " ";
-		}
-		std::cout << std::endl;
-
-		//--------
-
-		uint8_t NUM_DRIVERS;
-		memcpy(&NUM_DRIVERS, data, sizeof(uint8_t));
-		data += 1;
-		//std::cout << "NUM_DRIVERS: " << (int)NUM_DRIVERS << std::endl;
-
-		//--------
-
-		uint8_t DRIVER_NAME_LENGTH;
-		memcpy(&DRIVER_NAME_LENGTH, data, sizeof(uint8_t));
-		data += 1;
-		//std::cout << "DRIVER_NAME_LENGTH: " << (int)NUM_DRIVERS << std::endl;
-
-		//---------
-
-		uint8_t* DriverType = new uint8_t[NUM_DRIVERS];
-		memcpy(DriverType, data, sizeof(uint8_t)*NUM_DRIVERS);
-		data += NUM_DRIVERS; // Mmmm, what if it is 0?
-
-		std::cout << "DriverType: ";
-		for (int i(0); i < (int)NUM_DRIVERS; i++) {
-			std::cout << i << ":" << DriverTypes[(int)DriverType[i]] << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint8_t* DriverSpeed = new uint8_t[NUM_DRIVERS];
-		memcpy(DriverSpeed, data, sizeof(uint8_t)*NUM_DRIVERS);
-		data += NUM_DRIVERS;
-
-		std::cout << "DriverSpeed: ";
-		for (int i(0); i < (int)NUM_DRIVERS; i++) {
-			std::cout << i << ":" << DriverSpeeds[(int)DriverSpeed[i]] << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint8_t* DriverExpandable = new uint8_t[NUM_DRIVERS];
-		memcpy(DriverExpandable, data, sizeof(uint8_t)*NUM_DRIVERS);
-		data += NUM_DRIVERS; 
-
-		std::cout << "DriverExpandable: ";
-		for (int i(0); i < (int)NUM_DRIVERS; i++) {
-			std::cout << i << ":" << (((int)DriverExpandable[i]) ? "Capable of expanded mode" : "Normal mode only") << " ";
-		}
-		std::cout << std::endl;
-
-		//---------
-
-		uint8_t** DriverNames = new uint8_t*[NUM_DRIVERS];
-
-		for (int i = 0; i < NUM_DRIVERS; i++) {
-			DriverNames[i] = new uint8_t[DRIVER_NAME_LENGTH+1];
-			memset(DriverNames[i], 0, sizeof(uint8_t)*DRIVER_NAME_LENGTH+1);
-			memcpy(DriverNames[i], data, sizeof(uint8_t)*DRIVER_NAME_LENGTH);
-			data += DRIVER_NAME_LENGTH;
-		}
-	
-		//std::cout << "DriverNames: ";
-		//for (int i(0); i < (int)NUM_DRIVERS; i++) {
-		//	std::cout << i << ":" << DriverNames[i] << " ";
+		//std::cout << "OutputPixels: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	rec_data->OutputPixels[i] = ((rec_data->OutputPixels[i] & 0xff) << 8) | ((rec_data->OutputPixels[i] & 0xff00) >> 8);
+		//	std::cout << i << ":" << (int)rec_data->OutputPixels[i] << " ";
 		//}
 		//std::cout << std::endl;
 
 		//--------
 
-		uint8_t CurrentDriver;
-		memcpy(&CurrentDriver, data, sizeof(uint8_t));
-		data += 1;
-		std::cout << "CurrentDriver: " << DriverNames[(int)CurrentDriver] << std::endl;
+		rec_data->OutputUniv = new uint16_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputUniv, data, sizeof(uint16_t)*rec_data->NumOutputs);
+		data += (rec_data->NumOutputs * 2);
 
-		//---------
-
-		uint8_t CurrentDriverType;
-		memcpy(&CurrentDriverType, data, sizeof(uint8_t));
-		data += 1;
-		std::cout << "CurrentDriverType: " << (((int)CurrentDriverType)? "RGBW" : "RGB") << std::endl;
-
-		//---------
-
-		uint8_t CurrentDriverSpeed;
-		memcpy(&CurrentDriverSpeed, data, sizeof(uint8_t));
-		data += 1;
-		std::cout << "CurrentDriverSpeed: " << DriverSpeedsMhz[(int)CurrentDriverSpeed] << std::endl;
-
-		//---------
-
-		uint8_t CurrentDriverExpanded;
-		memcpy(&CurrentDriverExpanded, data, sizeof(uint8_t));
-		data += 1;
-		std::cout << "CurrentDriverExpanded: " << (((int)CurrentDriverType) ? "Expanded / Condensed mode)" : "Normal mode") << std::endl;
-
-		//---------
-
-		uint8_t Gamma[4];
-		memcpy(Gamma, data, sizeof(uint8_t) * 4);
-		data += 4;
-
-		std::cout << "Gamma: R" << (float)Gamma[0] * 0.1 << " G" << (float)Gamma[1] * 0.1 << " B" << (float)Gamma[2] * 0.1 << " W" << (float)Gamma[3] * 0.1 << std::endl;
-
-		//---------
-
-		uint8_t Nickname[40];
-		memcpy(Nickname, data, sizeof(uint8_t) * 40);
-		data += 40;
-
-		std::cout << "Nickname: " << Nickname << std::endl;
+		//std::cout << "OutputUniverse: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	rec_data->OutputUniv[i] = ((rec_data->OutputUniv[i] & 0xff) << 8) | ((rec_data->OutputUniv[i] & 0xff00) >> 8);
+		//	std::cout << i << ":" << (int)rec_data->OutputUniv[i] << " ";
+		//}
+		//std::cout << std::endl;
 
 		//--------
 
-		uint16_t Temperature;
-		memcpy(&Temperature, data, sizeof(uint16_t));
+		rec_data->OutputChan = new uint16_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputChan, data, sizeof(uint16_t)*rec_data->NumOutputs);
+		data += (rec_data->NumOutputs * 2);
+
+		//std::cout << "OutputChannel: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	rec_data->OutputChan[i] = ((rec_data->OutputChan[i] & 0xff) << 8) | ((rec_data->OutputChan[i] & 0xff00) >> 8);
+		//	std::cout << i << ":" << (int)rec_data->OutputChan[i] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+		
+		rec_data->OutputNull = new uint8_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputNull, data, sizeof(uint8_t)*rec_data->NumOutputs);
+		data += rec_data->NumOutputs;
+		
+		//std::cout << "OutputNull: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	std::cout << i << ":" << (int)rec_data->OutputNull[i] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->OutputZig = new uint16_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputZig, data, sizeof(uint16_t)*rec_data->NumOutputs);
+		data += (rec_data->NumOutputs * 2);
+
+		//std::cout << "OutputZigZag: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	rec_data->OutputZig[i] = ((rec_data->OutputZig[i] & 0xff) << 8) | ((rec_data->OutputZig[i] & 0xff00) >> 8);
+		//	std::cout << i << ":" << (int)rec_data->OutputZig[i] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->OutputReverse = new uint8_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputReverse, data, sizeof(uint8_t)*rec_data->NumOutputs);
+		data += rec_data->NumOutputs;
+
+		//std::cout << "OutputReverse: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	std::cout << i << ":" << (((int)rec_data->OutputReverse[i])?"True":"False") << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->OutputColOrder = new uint8_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputColOrder, data, sizeof(uint8_t)*rec_data->NumOutputs);
+		data += rec_data->NumOutputs;
+
+		//std::cout << "OutputColOrder: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	std::cout << i << ":" << RGBW_Order[(int)rec_data->OutputColOrder[i]] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->OutputGrouping = new uint16_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputGrouping, data, sizeof(uint16_t)*rec_data->NumOutputs);
+		data += (rec_data->NumOutputs * 2);
+
+		//std::cout << "OutputGrouping: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	rec_data->OutputGrouping[i] = ((rec_data->OutputGrouping[i] & 0xff) << 8) | ((rec_data->OutputGrouping[i] & 0xff00) >> 8);
+		//	std::cout << i << ":" << (int)rec_data->OutputGrouping[i] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->OutputBrightness = new uint8_t[rec_data->NumOutputs];
+		memcpy(rec_data->OutputBrightness, data, sizeof(uint8_t)*rec_data->NumOutputs);
+		data += rec_data->NumOutputs;
+
+		//std::cout << "OutputBrightness: ";
+		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+		//	std::cout << i << ":" << (int)rec_data->OutputBrightness[i] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//--------
+
+		//uint8_t NUM_DMX_OUT;
+		memcpy(&rec_data->NumDMXOutputs, data, sizeof(uint8_t));
+		data += 1;
+		//std::cout << "NUM_DMX_OUT: " << (int)NUM_DMX_OUT << std::endl;
+
+		//--------
+
+		//uint8_t ProtocolsOnDmxOut;
+		memcpy(&rec_data->ProtocolsOnDmxOut, data, sizeof(uint8_t));
+		data += 1;
+		//std::cout << "ProtocolsOnDmxOut: " << ((rec_data->ProtocolsOnDmxOut && 0x01) ? "ArtNet" : "") << ((rec_data->ProtocolsOnDmxOut<<1 && 0x01) ? ", sACN" : "") << std::endl;
+
+		//---------
+
+		rec_data->DmxOutOn = new uint8_t[rec_data->NumDMXOutputs];
+		memcpy(rec_data->DmxOutOn, data, sizeof(uint8_t)*rec_data->NumDMXOutputs);
+		data += rec_data->NumDMXOutputs;
+
+		//std::cout << "DmxOutOn: ";
+		//for (int i(0); i < (int)rec_data->NumDMXOutputs; i++) {
+		//	std::cout << i << ":" << (((int)rec_data->DmxOutOn[i]) ? "On" : "Off") << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->DmxOutUniv = new uint16_t[rec_data->NumDMXOutputs];
+		memcpy(rec_data->DmxOutUniv, data, sizeof(uint16_t)*rec_data->NumDMXOutputs);
+		data += (rec_data->NumDMXOutputs *2);
+
+		//std::cout << "DmxOutUniv: ";
+		//for (int i(0); i < (int)rec_data->NumDMXOutputs; i++) {
+		//	rec_data->DmxOutUniv[i] = ((rec_data->DmxOutUniv[i] & 0xff) << 8) | ((rec_data->DmxOutUniv[i] & 0xff00) >> 8);
+		//	std::cout << i << ":" << (int)rec_data->DmxOutUniv[i] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//--------
+
+		memcpy(&rec_data->NumDrivers, data, sizeof(uint8_t));
+		data += 1;
+		//std::cout << "NUM_DRIVERS: " << (int)rec_data->NumDrivers << std::endl;
+
+		//--------
+
+		memcpy(&rec_data->DriverNameLength, data, sizeof(uint8_t));
+		data += 1;
+		//std::cout << "DRIVER_NAME_LENGTH: " << (int)rec_data->DriverNameLength << std::endl;
+
+		//---------
+
+		rec_data->DriverType = new uint8_t[rec_data->NumDrivers];
+		memcpy(rec_data->DriverType, data, sizeof(uint8_t)*rec_data->NumDrivers);
+		data += rec_data->NumDrivers; // Mmmm, what if it is 0?
+
+		//std::cout << "DriverType: ";
+		//for (int i(0); i < (int)rec_data->NumDrivers; i++) {
+		//	std::cout << i << ":" << DriverTypes[(int)rec_data->DriverType[i]] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->DriverSpeed = new uint8_t[rec_data->NumDrivers];
+		memcpy(rec_data->DriverSpeed, data, sizeof(uint8_t)*rec_data->NumDrivers);
+		data += rec_data->NumDrivers;
+
+		//std::cout << "DriverSpeed: ";
+		//for (int i(0); i < (int)rec_data->NumDrivers; i++) {
+		//	std::cout << i << ":" << DriverSpeeds[(int)rec_data->DriverSpeed[i]] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->DriverExpandable = new uint8_t[rec_data->NumDrivers];
+		memcpy(rec_data->DriverExpandable, data, sizeof(uint8_t)*rec_data->NumDrivers);
+		data += rec_data->NumDrivers;
+
+		//std::cout << "DriverExpandable: ";
+		//for (int i(0); i < (int)rec_data->NumDrivers; i++) {
+		//	std::cout << i << ":" << (((int)rec_data->DriverExpandable[i]) ? "Capable of expanded mode" : "Normal mode only") << " ";
+		//}
+		//std::cout << std::endl;
+
+		//---------
+
+		rec_data->DriverNames = new uint8_t*[rec_data->NumDrivers];
+
+		for (int i = 0; i < rec_data->NumDrivers; i++) {
+			rec_data->DriverNames[i] = new uint8_t[rec_data->DriverNameLength +1];
+			memset(rec_data->DriverNames[i], 0, sizeof(uint8_t)*rec_data->DriverNameLength +1);
+			memcpy(rec_data->DriverNames[i], data, sizeof(uint8_t)*rec_data->DriverNameLength);
+			data += rec_data->DriverNameLength;
+		}
+	
+		//std::cout << "DriverNames: ";
+		//for (int i(0); i < (int)rec_data->NumDrivers; i++) {
+		//	std::cout << i << ":" << rec_data->DriverNames[i] << " ";
+		//}
+		//std::cout << std::endl;
+
+		//--------
+
+		//uint8_t CurrentDriver;
+		memcpy(&rec_data->CurrentDriver, data, sizeof(uint8_t));
+		data += 1;
+		//std::cout << "CurrentDriver: " << rec_data->DriverNames[(int)rec_data->CurrentDriver] << std::endl;
+
+		//---------
+
+		//uint8_t CurrentDriverType;
+		memcpy(&rec_data->CurrentDriverType, data, sizeof(uint8_t));
+		data += 1;
+		//std::cout << "CurrentDriverType: " << (((int)rec_data->CurrentDriverType)? "RGBW" : "RGB") << std::endl;
+
+		//---------
+
+		//uint8_t CurrentDriverSpeed;
+		memcpy(&rec_data->CurrentDriverSpeed, data, sizeof(uint8_t));
+		data += 1;
+		//std::cout << "CurrentDriverSpeed: " << DriverSpeedsMhz[(int)rec_data->CurrentDriverSpeed] << std::endl;
+
+		//---------
+
+		//uint8_t CurrentDriverExpanded;
+		memcpy(&rec_data->CurrentDriverExpanded, data, sizeof(uint8_t));
+		data += 1;
+		//std::cout << "CurrentDriverExpanded: " << (((int)rec_data->CurrentDriverType) ? "Expanded / Condensed mode)" : "Normal mode") << std::endl;
+
+		//---------
+
+		//uint8_t Gamma[4];
+		memcpy(rec_data->Gamma, data, sizeof(uint8_t) * 4);
+		data += 4;
+
+		//std::cout << "Gamma: R" << (float)rec_data->Gamma[0] * 0.1 << " G" << (float)rec_data->Gamma[1] * 0.1 << " B" << (float)rec_data->Gamma[2] * 0.1 << " W" << (float)rec_data->Gamma[3] * 0.1 << std::endl;
+
+		//---------
+
+		//uint8_t Nickname[40];
+		memcpy(rec_data->Nickname, data, sizeof(uint8_t) * 40);
+		data += 40;
+
+		//std::cout << "Nickname: " << rec_data->Nickname << std::endl;
+
+		//--------
+
+		//uint16_t Temperature;
+		memcpy(&rec_data->Temperature, data, sizeof(uint16_t));
 		data += 2;
 
 		// Swap bytes
-		Temperature = ((Temperature & 0xff) << 8) | ((Temperature & 0xff00) >> 8);
+		rec_data->Temperature = ((rec_data->Temperature & 0xff) << 8) | ((rec_data->Temperature & 0xff00) >> 8);
 
-		std::cout << "Temperature: " << (float)Temperature*0.1 << std::endl;
+		//std::cout << "Temperature: " << (float)rec_data->Temperature*0.1 << std::endl;
 
 		//---------
 
-		uint8_t MaxTargetTemp;
-		memcpy(&MaxTargetTemp, data, sizeof(uint8_t));
+		//uint8_t MaxTargetTemp;
+		memcpy(&rec_data->MaxTargetTemp, data, sizeof(uint8_t));
 		data += 1;
-		std::cout << "MaxTargetTemp: " << (float)MaxTargetTemp*0.1 << std::endl;
+		//std::cout << "MaxTargetTemp: " << (float)rec_data->MaxTargetTemp*0.1 << std::endl;
 
 		//---------
 
-		uint8_t NUM_BANKS;
-		memcpy(&NUM_BANKS, data, sizeof(uint8_t));
+		//uint8_t NUM_BANKS;
+		memcpy(&rec_data->NumBanks, data, sizeof(uint8_t));
 		data += 1;
 		//std::cout << "NUM_BANKS: " << (int)NUM_BANKS << std::endl;
 
 		//---------
 
-		uint16_t* VoltageBanks = new uint16_t[NUM_BANKS];
-		memcpy(VoltageBanks, data, sizeof(uint16_t)*NUM_BANKS);
-		data += (NUM_BANKS * 2);
+		rec_data->VoltageBanks = new uint16_t[rec_data->NumBanks];
+		memcpy(rec_data->VoltageBanks, data, sizeof(uint16_t)*rec_data->NumBanks);
+		data += (rec_data->NumBanks * 2);
 
-		std::cout << "VoltageBanks: ";
-		for (int i(0); i < (int)NUM_BANKS; i++) {
-			VoltageBanks[i] = ((VoltageBanks[i] & 0xff) << 8) | ((VoltageBanks[i] & 0xff00) >> 8);
-			std::cout << i << ":" << (float)VoltageBanks[i]*0.1 << " ";
-		}
-		std::cout << std::endl;
+		//std::cout << "VoltageBanks: ";
+		//for (int i(0); i < (int)rec_data->NumBanks; i++) {
+		//	rec_data->VoltageBanks[i] = ((rec_data->VoltageBanks[i] & 0xff) << 8) | ((rec_data->VoltageBanks[i] & 0xff00) >> 8);
+		//	std::cout << i << ":" << (float)rec_data->VoltageBanks[i]*0.1 << " ";
+		//}
+		//std::cout << std::endl;
 
 		//---------
 
-		uint8_t TestMode;
-		memcpy(&TestMode, data, sizeof(uint8_t));
+		//uint8_t TestMode;
+		memcpy(&rec_data->TestMode, data, sizeof(uint8_t));
 		data += 1;
 		
-		std::cout << "TestMode: " << TestModes[(int)TestMode] << std::endl;
+		//std::cout << "TestMode: " << TestModes[(int)rec_data->TestMode] << std::endl;
 
 		//---------
 
-		uint8_t TestCols[4];
-		memcpy(TestCols, data, sizeof(uint8_t) * 4);
+		//uint8_t TestCols[4];
+		memcpy(rec_data->TestCols, data, sizeof(uint8_t) * 4);
 		data += 4;
 
-		std::cout << "TestColor: R" << (int)TestCols[0] << " G" << (int)TestCols[1] << " B" << (int)TestCols[2] << " W" << (int)TestCols[3] << std::endl;
+		//std::cout << "TestColor: R" << (int)rec_data->TestCols[0] << " G" << (int)rec_data->TestCols[1] << " B" << (int)rec_data->TestCols[2] << " W" << (int)rec_data->TestCols[3] << std::endl;
 
 		//---------
 
-		uint8_t TestOutputNum;
-		memcpy(&TestOutputNum, data, sizeof(uint8_t));
+		//uint8_t TestOutputNum;
+		memcpy(&rec_data->TestOutputNum, data, sizeof(uint8_t));
 		data += 1;
 
-		std::cout << "TestOutputNum: " << (int)TestOutputNum << std::endl;
+		//std::cout << "TestOutputNum: " << (int)rec_data->TestOutputNum << std::endl;
 
 		//--------
 
-		uint16_t TestPixelNum;
-		memcpy(&TestPixelNum, data, sizeof(uint16_t));
+		//uint16_t TestPixelNum;
+		memcpy(&rec_data->TestPixelNum, data, sizeof(uint16_t));
 		data += 2;
 
 		// Swap bytes
-		TestPixelNum = ((TestPixelNum & 0xff) << 8) | ((TestPixelNum & 0xff00) >> 8);
+		rec_data->TestPixelNum = ((rec_data->TestPixelNum & 0xff) << 8) | ((rec_data->TestPixelNum & 0xff00) >> 8);
 
-		std::cout << "TestPixelNum: " << (int)TestPixelNum << std::endl;
+		//std::cout << "TestPixelNum: " << (int)rec_data->TestPixelNum << std::endl;
 
 		//---------
+
+		if (!deviceExist(rec_data->Mac)) devices.emplace_back(rec_data);
+
 
 	}
 }
 
 //--------------------------------------------------------------
 void ofxAdvatekAssistor::poll() {
+	for (auto device : devices)
+	{
+		// todo remove all allocated memory banks.
+		
+		if (device)
+		{
+			delete device->Model;
+			delete device->Firmware;
+			delete device->OutputPixels;
+			delete device->OutputUniv;
+			delete device->OutputChan;
+			delete device->OutputNull;
+			delete device->OutputZig;
+			delete device->OutputReverse;
+			delete device->OutputColOrder;
+			delete device->OutputGrouping;
+			delete device->OutputBrightness;
+			delete device->DmxOutOn;
+			delete device->DmxOutUniv;
+			delete device->DriverType;
+			delete device->DriverSpeed;
+			delete device->DriverExpandable;
+			for(int i=0; i<device->NumDrivers; ++i)
+			{
+				delete device->DriverNames[i];
+			}
+			delete device->VoltageBanks;
+			delete device->DriverNames;
+
+			delete device;
+		}
+	}
+	
+	devices.clear();
+
     char buf[12];
 	memset(buf, '\0', 12);
 	buf[0] = 'A';
@@ -621,3 +662,19 @@ void ofxAdvatekAssistor::poll() {
 }
 
 //--------------------------------------------------------------
+vector<T_AdvatekDevice*>& ofxAdvatekAssistor::getDevices() {
+	return devices;
+}
+
+//--------------------------------------------------------------
+
+bool ofxAdvatekAssistor::deviceExist(uint8_t * Mac) {
+	for (int d(0); d < devices.size(); d++) {
+		bool exist = true;
+		for (int i(0); i < 6; i++) {
+			if (devices[d]->Mac[i] != Mac[i]) exist = false;
+		}
+		if (exist) return true;
+	}
+	return false;
+}

@@ -10,11 +10,13 @@ void ofApp::setup(){
 //--------------------------------------------------------------
 void ofApp::update(){
     AdvatekAssist.update();
+	devices = AdvatekAssist.getDevices();
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
     ofDrawBitmapString("Press Any Key to Poll...", 50, 50);
+	ofDrawBitmapString(to_string(devices.size()) + " devices connected", 50, 80);
 }
 
 //--------------------------------------------------------------
