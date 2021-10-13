@@ -77,7 +77,7 @@ typedef struct sAdvatekDevice {
     uint8_t TestCols[4];
     uint8_t TestOutputNum;
     uint16_t TestPixelNum;
-
+	string Title;
 } T_AdvatekDevice;
 
 class ofxAdvatekAssistor {
@@ -90,7 +90,9 @@ public:
     void setup();
     void update();
     void poll();
+	void updateDevice(int d);
     vector<T_AdvatekDevice*>& getDevices();
+	string addressString(uint8_t * address);
 
 	static const char* RGBW_Order[24];
 	static const char* DriverTypes[3];

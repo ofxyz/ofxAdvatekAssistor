@@ -78,6 +78,11 @@ void ofxAdvatekAssistor::setup() {
 }
 
 //--------------------------------------------------------------
+
+void ofxAdvatekAssistor::updateDevice(int d) {
+	std::cout << "Updating Device: " << d << std::endl;
+}
+
 void ofxAdvatekAssistor::update() {
 
     const int packetSize = 100000;
@@ -600,9 +605,11 @@ void ofxAdvatekAssistor::update() {
 		//std::cout << "TestPixelNum: " << (int)rec_data->TestPixelNum << std::endl;
 
 		//---------
+		std::stringstream Title;
+		Title << rec_data->Model <<  "	" << rec_data->Firmware << "	" << addressString(rec_data->CurrentIP) << "		" << "Temp: " << (float)rec_data->Temperature*0.1 << "		" << rec_data->Nickname;
+		rec_data->Title = Title.str();
 
 		if (!deviceExist(rec_data->Mac)) devices.emplace_back(rec_data);
-
 
 	}
 }
@@ -677,4 +684,15 @@ bool ofxAdvatekAssistor::deviceExist(uint8_t * Mac) {
 		if (exist) return true;
 	}
 	return false;
+}
+
+string ofxAdvatekAssistor::addressString(uint8_t * address) {
+	std::stringstream ss;
+
+	for (int i(0); i < 4; i++) {
+		ss << static_cast<int>(address[i]);
+		if (i < 3) ss << ".";
+	}
+
+	return ss.str();
 }
