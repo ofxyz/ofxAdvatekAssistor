@@ -20,6 +20,8 @@
 #define OpTestAnnounce 0x0009 // Announce the current test mode.
 #define OpVisualIdent 0x000a // A broadcast to request the controller of the designated MAC to identify its location by flashing its status LED.
 
+#define bswap_16(x) x=((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
+
 typedef struct sAdvatekDevice {
     uint8_t ProtVer; // Protocol version
     uint8_t CurrentProtVer; // Using Protocol version
@@ -92,6 +94,7 @@ public:
     void poll();
 	void connect();
 	void updateDevice(int d);
+
     vector<T_AdvatekDevice*>& getDevices();
 	string addressString(uint8_t * address);
 

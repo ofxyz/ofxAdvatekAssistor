@@ -81,7 +81,6 @@ void ofxAdvatekAssistor::connect() {
 	udpConnection.SetNonBlocking(true);
 }
 
-
 //--------------------------------------------------------------
 
 void ofxAdvatekAssistor::updateDevice(int d) {
@@ -115,7 +114,7 @@ void ofxAdvatekAssistor::update() {
 		memcpy(&OpCodes, data, sizeof(uint16_t));
 		data += 2;
 		// Swap bytes
-		OpCodes = ((OpCodes & 0xff) << 8) | ((OpCodes & 0xff00) >> 8);
+		bswap_16(OpCodes);
 		//std::cout << "messageType: " << OpCodes << std::endl;
 
 		// Only process OpPollReply
@@ -143,15 +142,15 @@ void ofxAdvatekAssistor::update() {
 		memcpy(rec_data->Mac, data, 6);
 		data += 6;
 
-		std::stringstream ss;
-		ss << std::hex << std::setfill('0');
+		//std::stringstream ss;
+		//ss << std::hex << std::setfill('0');
 
-		for (int i(0); i < 6; i++) {
-			ss << std::hex << std::setw(2) << static_cast<int>(rec_data->Mac[i]);
-			if(i < 5) ss << ":";
-		}
+		//for (int i(0); i < 6; i++) {
+		//	ss << std::hex << std::setw(2) << static_cast<int>(rec_data->Mac[i]);
+		//	if(i < 5) ss << ":";
+		//}
 
-		string macAddress = ss.str();
+		//string macAddress = ss.str();
 		//std::cout << "MAC Address: " << macAddress << std::endl;
 
 		//--------
@@ -263,8 +262,7 @@ void ofxAdvatekAssistor::update() {
 		memcpy(&rec_data->MaxPixPerOutput, data, sizeof(uint16_t));
 		data += 2;
 
-		// Swap bytes
-		rec_data->MaxPixPerOutput = ((rec_data->MaxPixPerOutput & 0xff) << 8) | ((rec_data->MaxPixPerOutput & 0xff00) >> 8);
+		bswap_16(rec_data->MaxPixPerOutput);
 
 		//std::cout << "MaxPixPerOutput: " << (int)rec_data->MaxPixPerOutput << std::endl;
 
@@ -282,10 +280,11 @@ void ofxAdvatekAssistor::update() {
 		data += (rec_data->NumOutputs *2);
 
 		//std::cout << "OutputPixels: ";
-		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
-		//	rec_data->OutputPixels[i] = ((rec_data->OutputPixels[i] & 0xff) << 8) | ((rec_data->OutputPixels[i] & 0xff00) >> 8);
+		for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+
+			bswap_16(rec_data->OutputPixels[i]);
 		//	std::cout << i << ":" << (int)rec_data->OutputPixels[i] << " ";
-		//}
+		}
 		//std::cout << std::endl;
 
 		//--------
@@ -295,10 +294,10 @@ void ofxAdvatekAssistor::update() {
 		data += (rec_data->NumOutputs * 2);
 
 		//std::cout << "OutputUniverse: ";
-		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
-		//	rec_data->OutputUniv[i] = ((rec_data->OutputUniv[i] & 0xff) << 8) | ((rec_data->OutputUniv[i] & 0xff00) >> 8);
+		for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+			bswap_16(rec_data->OutputUniv[i]);
 		//	std::cout << i << ":" << (int)rec_data->OutputUniv[i] << " ";
-		//}
+		}
 		//std::cout << std::endl;
 
 		//--------
@@ -308,10 +307,10 @@ void ofxAdvatekAssistor::update() {
 		data += (rec_data->NumOutputs * 2);
 
 		//std::cout << "OutputChannel: ";
-		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
-		//	rec_data->OutputChan[i] = ((rec_data->OutputChan[i] & 0xff) << 8) | ((rec_data->OutputChan[i] & 0xff00) >> 8);
+		for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+			bswap_16(rec_data->OutputChan[i]);
 		//	std::cout << i << ":" << (int)rec_data->OutputChan[i] << " ";
-		//}
+		}
 		//std::cout << std::endl;
 
 		//---------
@@ -333,10 +332,10 @@ void ofxAdvatekAssistor::update() {
 		data += (rec_data->NumOutputs * 2);
 
 		//std::cout << "OutputZigZag: ";
-		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
-		//	rec_data->OutputZig[i] = ((rec_data->OutputZig[i] & 0xff) << 8) | ((rec_data->OutputZig[i] & 0xff00) >> 8);
+		for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+			bswap_16(rec_data->OutputZig[i]);
 		//	std::cout << i << ":" << (int)rec_data->OutputZig[i] << " ";
-		//}
+		}
 		//std::cout << std::endl;
 
 		//---------
@@ -370,10 +369,10 @@ void ofxAdvatekAssistor::update() {
 		data += (rec_data->NumOutputs * 2);
 
 		//std::cout << "OutputGrouping: ";
-		//for (int i(0); i < (int)rec_data->NumOutputs; i++) {
-		//	rec_data->OutputGrouping[i] = ((rec_data->OutputGrouping[i] & 0xff) << 8) | ((rec_data->OutputGrouping[i] & 0xff00) >> 8);
+		for (int i(0); i < (int)rec_data->NumOutputs; i++) {
+			bswap_16(rec_data->OutputGrouping[i]);
 		//	std::cout << i << ":" << (int)rec_data->OutputGrouping[i] << " ";
-		//}
+		}
 		//std::cout << std::endl;
 
 		//---------
@@ -421,10 +420,10 @@ void ofxAdvatekAssistor::update() {
 		data += (rec_data->NumDMXOutputs *2);
 
 		//std::cout << "DmxOutUniv: ";
-		//for (int i(0); i < (int)rec_data->NumDMXOutputs; i++) {
-		//	rec_data->DmxOutUniv[i] = ((rec_data->DmxOutUniv[i] & 0xff) << 8) | ((rec_data->DmxOutUniv[i] & 0xff00) >> 8);
+		for (int i(0); i < (int)rec_data->NumDMXOutputs; i++) {
+			bswap_16(rec_data->DmxOutUniv[i]);
 		//	std::cout << i << ":" << (int)rec_data->DmxOutUniv[i] << " ";
-		//}
+		}
 		//std::cout << std::endl;
 
 		//--------
@@ -542,8 +541,7 @@ void ofxAdvatekAssistor::update() {
 		memcpy(&rec_data->Temperature, data, sizeof(uint16_t));
 		data += 2;
 
-		// Swap bytes
-		rec_data->Temperature = ((rec_data->Temperature & 0xff) << 8) | ((rec_data->Temperature & 0xff00) >> 8);
+		bswap_16(rec_data->Temperature);
 
 		//std::cout << "Temperature: " << (float)rec_data->Temperature*0.1 << std::endl;
 
@@ -568,10 +566,10 @@ void ofxAdvatekAssistor::update() {
 		data += (rec_data->NumBanks * 2);
 
 		//std::cout << "VoltageBanks: ";
-		//for (int i(0); i < (int)rec_data->NumBanks; i++) {
-		//	rec_data->VoltageBanks[i] = ((rec_data->VoltageBanks[i] & 0xff) << 8) | ((rec_data->VoltageBanks[i] & 0xff00) >> 8);
+		for (int i(0); i < (int)rec_data->NumBanks; i++) {
+			bswap_16(rec_data->VoltageBanks[i]);
 		//	std::cout << i << ":" << (float)rec_data->VoltageBanks[i]*0.1 << " ";
-		//}
+		}
 		//std::cout << std::endl;
 
 		//---------
@@ -604,8 +602,7 @@ void ofxAdvatekAssistor::update() {
 		memcpy(&rec_data->TestPixelNum, data, sizeof(uint16_t));
 		data += 2;
 
-		// Swap bytes
-		rec_data->TestPixelNum = ((rec_data->TestPixelNum & 0xff) << 8) | ((rec_data->TestPixelNum & 0xff00) >> 8);
+		bswap_16(rec_data->TestPixelNum);
 
 		//std::cout << "TestPixelNum: " << (int)rec_data->TestPixelNum << std::endl;
 
