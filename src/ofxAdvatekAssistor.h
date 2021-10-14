@@ -90,6 +90,7 @@ public:
     void setup();
     void update();
     void poll();
+	void connect();
 	void updateDevice(int d);
     vector<T_AdvatekDevice*>& getDevices();
 	string addressString(uint8_t * address);

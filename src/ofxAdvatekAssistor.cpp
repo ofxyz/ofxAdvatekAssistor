@@ -70,12 +70,17 @@ const char* ofxAdvatekAssistor::TestModes[9] = {
 
 //--------------------------------------------------------------
 void ofxAdvatekAssistor::setup() {
-    udpConnection.Create();
+	poll();
+}
+
+void ofxAdvatekAssistor::connect() {
+	udpConnection.Create();
 	udpConnection.Connect("255.255.255.255", 49150);
 	udpConnection.Bind(49150);
 	udpConnection.SetEnableBroadcast(true);
 	udpConnection.SetNonBlocking(true);
 }
+
 
 //--------------------------------------------------------------
 
@@ -616,39 +621,34 @@ void ofxAdvatekAssistor::update() {
 
 //--------------------------------------------------------------
 void ofxAdvatekAssistor::poll() {
+	connect();
+
 	for (auto device : devices)
 	{
-		// todo remove all allocated memory banks.
-		
 		if (device)
 		{
 			delete device->Model;
 			delete device->Firmware;
-			delete device->OutputPixels;
-			delete device->OutputUniv;
-			delete device->OutputChan;
-			delete device->OutputNull;
-			delete device->OutputZig;
-			delete device->OutputReverse;
-			delete device->OutputColOrder;
-			delete device->OutputGrouping;
-			delete device->OutputBrightness;
-			delete device->DmxOutOn;
-			delete device->DmxOutUniv;
-			delete device->DriverType;
-			delete device->DriverSpeed;
-			delete device->DriverExpandable;
-			for(int i=0; i<device->NumDrivers; ++i)
-			{
-				delete device->DriverNames[i];
-			}
-			delete device->VoltageBanks;
-			delete device->DriverNames;
-
+			delete[] device->OutputPixels;
+			delete[] device->OutputUniv;
+			delete[] device->OutputChan;
+			delete[] device->OutputNull;
+			delete[] device->OutputZig;
+			delete[] device->OutputReverse;
+			delete[] device->OutputColOrder;
+			delete[] device->OutputGrouping;
+			delete[] device->OutputBrightness;
+			delete[] device->DmxOutOn;
+			delete[] device->DmxOutUniv;
+			delete[] device->DriverType;
+			delete[] device->DriverSpeed;
+			delete[] device->DriverExpandable;
+			delete[] device->DriverNames;
+			delete[] device->VoltageBanks;
 			delete device;
 		}
 	}
-	
+
 	devices.clear();
 
     char buf[12];
@@ -665,6 +665,7 @@ void ofxAdvatekAssistor::poll() {
 	buf[9] = 0x00;
 	buf[10] = 0x01;
 	buf[11] = 0x08;
+
 	udpConnection.Send(buf, 12);
 }
 
@@ -676,6 +677,7 @@ vector<T_AdvatekDevice*>& ofxAdvatekAssistor::getDevices() {
 //--------------------------------------------------------------
 
 bool ofxAdvatekAssistor::deviceExist(uint8_t * Mac) {
+
 	for (int d(0); d < devices.size(); d++) {
 		bool exist = true;
 		for (int i(0); i < 6; i++) {
@@ -683,6 +685,7 @@ bool ofxAdvatekAssistor::deviceExist(uint8_t * Mac) {
 		}
 		if (exist) return true;
 	}
+
 	return false;
 }
 
