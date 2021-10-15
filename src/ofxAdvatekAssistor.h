@@ -98,7 +98,7 @@ public:
     vector<T_AdvatekDevice*>& getDevices();
 	string addressString(uint8_t * address);
 
-	void setEndUniverseChannel(int startUniverse, int startChannel, int pixelCount, int &endUniverse, int &endChannel);
+	void setEndUniverseChannel(int startUniverse, int startChannel, int pixelCount, int outputGrouping, int &endUniverse, int &endChannel);
 
 	static const char* RGBW_Order[24];
 	static const char* DriverTypes[3];

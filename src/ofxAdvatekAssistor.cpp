@@ -671,7 +671,8 @@ vector<T_AdvatekDevice*>& ofxAdvatekAssistor::getDevices() {
 	return devices;
 }
 
-void ofxAdvatekAssistor::setEndUniverseChannel(int startUniverse, int startChannel, int pixelCount, int &endUniverse, int &endChannel) {
+void ofxAdvatekAssistor::setEndUniverseChannel(int startUniverse, int startChannel, int pixelCount, int outputGrouping, int &endUniverse, int &endChannel) {
+	pixelCount *= outputGrouping;
 	int pixelChannels  = (3 * pixelCount); // R-G-B data
 	int pixelUniverses = ((float)(startChannel+pixelChannels) / 510.f);
 
