@@ -73,19 +73,25 @@ void ofxAdvatekAssistor::setup() {
 	poll();
 }
 
-void ofxAdvatekAssistor::connect() {
-	udpConnection.Create();
-	udpConnection.Connect("255.255.255.255", 49150);
-	udpConnection.Bind(49150);
-	udpConnection.SetEnableBroadcast(true);
-	udpConnection.SetNonBlocking(true);
+void ofxAdvatekAssistor::connect(int d) {
+	if (!udpConnection.Create()) {
+		udpConnection.Close();
+		udpConnection.Create();
+	};
+
+	if (d == -1) { // Broadcast
+		udpConnection.Connect("255.255.255.255", 49150);
+		udpConnection.Bind(49150);
+		udpConnection.SetEnableBroadcast(true);
+		udpConnection.SetNonBlocking(true);
+	} else { // Connect to device
+		udpConnection.Connect(addressString(devices[d]->CurrentIP).c_str(), 49150);
+	    udpConnection.Bind(49150);
+		udpConnection.SetNonBlocking(true);
+	}
 }
 
 //--------------------------------------------------------------
-
-void ofxAdvatekAssistor::updateDevice(int d) {
-	std::cout << "Updating Device: " << d << std::endl;
-}
 
 void ofxAdvatekAssistor::update() {
 
@@ -352,7 +358,7 @@ void ofxAdvatekAssistor::update() {
 
 		//---------
 
-		rec_data->OutputColOrder = new uint8_t[rec_data->NumOutputs];
+		rec_data->OutputColOrder = new int[rec_data->NumOutputs];
 		memcpy(rec_data->OutputColOrder, data, sizeof(uint8_t)*rec_data->NumOutputs);
 		data += rec_data->NumOutputs;
 
@@ -476,15 +482,15 @@ void ofxAdvatekAssistor::update() {
 
 		//---------
 
-		rec_data->DriverNames = new uint8_t*[rec_data->NumDrivers];
+		rec_data->DriverNames = new char*[rec_data->NumDrivers];
 
 		for (int i = 0; i < rec_data->NumDrivers; i++) {
-			rec_data->DriverNames[i] = new uint8_t[rec_data->DriverNameLength +1];
+			rec_data->DriverNames[i] = new char[rec_data->DriverNameLength +1];
 			memset(rec_data->DriverNames[i], 0, sizeof(uint8_t)*rec_data->DriverNameLength +1);
 			memcpy(rec_data->DriverNames[i], data, sizeof(uint8_t)*rec_data->DriverNameLength);
 			data += rec_data->DriverNameLength;
 		}
-	
+
 		//std::cout << "DriverNames: ";
 		//for (int i(0); i < (int)rec_data->NumDrivers; i++) {
 		//	std::cout << i << ":" << rec_data->DriverNames[i] << " ";
@@ -525,8 +531,12 @@ void ofxAdvatekAssistor::update() {
 		memcpy(rec_data->Gamma, data, sizeof(uint8_t) * 4);
 		data += 4;
 
-		//std::cout << "Gamma: R" << (float)rec_data->Gamma[0] * 0.1 << " G" << (float)rec_data->Gamma[1] * 0.1 << " B" << (float)rec_data->Gamma[2] * 0.1 << " W" << (float)rec_data->Gamma[3] * 0.1 << std::endl;
+		rec_data->Gammaf[0] = (float)rec_data->Gamma[0] * 0.1;
+		rec_data->Gammaf[1] = (float)rec_data->Gamma[1] * 0.1;
+		rec_data->Gammaf[2] = (float)rec_data->Gamma[2] * 0.1;
+		rec_data->Gammaf[3] = (float)rec_data->Gamma[3] * 0.1;
 
+		
 		//---------
 
 		//uint8_t Nickname[40];
@@ -607,10 +617,6 @@ void ofxAdvatekAssistor::update() {
 		//std::cout << "TestPixelNum: " << (int)rec_data->TestPixelNum << std::endl;
 
 		//---------
-		std::stringstream Title;
-		Title << rec_data->Model <<  "	" << rec_data->Firmware << "	" << addressString(rec_data->CurrentIP) << "		" << "Temp: " << (float)rec_data->Temperature*0.1 << "		" << rec_data->Nickname;
-		rec_data->Title = Title.str();
-
 		if (!deviceExist(rec_data->Mac)) devices.emplace_back(rec_data);
 
 	}
@@ -658,13 +664,64 @@ void ofxAdvatekAssistor::poll() {
 	buf[5] = 'e';
 	buf[6] = 'c';
 	buf[7] = 'h';
-	buf[8] = 0x00;
-	buf[9] = 0x00;
-	buf[10] = 0x01;
-	buf[11] = 0x08;
+	buf[8] = 0x00;   // Null Terminator
+	buf[9] = 0x00;   // OpCode
+	buf[10] = 0x01;  // OpCode
+	buf[11] = 0x08;  // ProtVer
 
 	udpConnection.Send(buf, 12);
 }
+
+
+//--------------------------------------------------------------
+
+void ofxAdvatekAssistor::updateDevice(int d) {
+	std::cout << "Update Device: " << d << std::endl;
+}
+
+//--------------------------------------------------------------
+
+void ofxAdvatekAssistor::setTest(int d) {
+	std::cout << "Set Test Device: " << d << std::endl;
+	connect(d);
+
+	char buf[26];
+	memset(buf, '\0', 26);
+	buf[0] = 'A';
+	buf[1] = 'd';
+	buf[2] = 'v';
+	buf[3] = 'a';
+	buf[4] = 't';
+	buf[5] = 'e';
+	buf[6] = 'c';
+	buf[7] = 'h';
+	buf[8] = 0x00;   // Null Terminator
+	buf[9] = 0x00;   // OpCode
+	buf[10] = 0x08;  // OpCode
+	buf[11] = 0x08;  // ProtVer
+	// Mac [6]
+	buf[12] = devices[d]->Mac[0];
+	buf[13] = devices[d]->Mac[1];
+	buf[14] = devices[d]->Mac[2];
+	buf[15] = devices[d]->Mac[3];
+	buf[16] = devices[d]->Mac[4];
+	buf[17] = devices[d]->Mac[5];
+	// TestMode
+	buf[18] = devices[d]->TestMode;
+	// TestCols
+	buf[19] = devices[d]->TestCols[0];
+	buf[20] = devices[d]->TestCols[1];
+	buf[21] = devices[d]->TestCols[2];
+	buf[22] = devices[d]->TestCols[3];
+	// TestOutputNum
+	buf[23] = 0;// devices[d]->TestOutputNum;
+	// TestPixelNum
+	buf[24] = 0;//devices[d]->TestPixelNum;
+	buf[25] = 0;//devices[d]->TestPixelNum >> 8;
+
+	udpConnection.Send(buf, 26);
+}
+
 
 //--------------------------------------------------------------
 vector<T_AdvatekDevice*>& ofxAdvatekAssistor::getDevices() {

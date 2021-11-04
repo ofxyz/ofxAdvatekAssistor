@@ -52,7 +52,7 @@ typedef struct sAdvatekDevice {
     uint8_t* OutputNull;//[NumOutputs]; // Null pixels
     uint16_t* OutputZig;//[2 * NumOutputs]; // Zig zags
     uint8_t* OutputReverse;//[NumOutputs]; // Reversed strings
-    uint8_t* OutputColOrder;//[NumOutputs]; // RGB order for each output
+    int* OutputColOrder;//[NumOutputs]; // RGB order for each output
     uint16_t* OutputGrouping;//[2 * NumOutputs]; // Pixel grouping
     uint8_t* OutputBrightness;//[NumOutputs]; // Brightness limiting
     uint8_t NumDMXOutputs; // Number of DMX outputs
@@ -64,22 +64,22 @@ typedef struct sAdvatekDevice {
     uint8_t* DriverType;//[NumDrivers]; // 0 = RGB only, 1 = RGBW only, 2 = Either
     uint8_t* DriverSpeed;//[NumDrivers]; // 0 = N/A, 1 = slow only, 2 = fast only, 3 = either, 4 = adjustable clock 0.4 - 2.9MHz(12 step)
     uint8_t* DriverExpandable;// [NumDrivers]; // 0 = Normal mode only, 1 = capable of expanded mode
-    uint8_t** DriverNames;// [NumDrivers][LENGTH_DRIVER_STRINGS]; // Null terminated strings of driver types
-    uint8_t CurrentDriver; // Current pixel protocol selection (index)
+    char** DriverNames;// [NumDrivers][LENGTH_DRIVER_STRINGS]; // Null terminated strings of driver types
+    int CurrentDriver; // Current pixel protocol selection (index)
     uint8_t CurrentDriverType; // RGB = 0, RGBW = 1
-    uint8_t CurrentDriverSpeed; // Output chip speed (0 = Slow, 1 = Fast)
+    int CurrentDriverSpeed; // Output chip speed (0 = Slow, 1 = Fast)
     uint8_t CurrentDriverExpanded; // Expanded/Condensed Mode
-    uint8_t Gamma[4]; // R, G & B Gamma
-    uint8_t Nickname[40]; // if the product has a nickname, null terminated
-    uint16_t Temperature; // Hi byte of temp reading
+	uint8_t Gamma[4]; // R, G & B Gamma
+	float Gammaf[4];
+    char Nickname[40]; // if the product has a nickname, null terminatedDriverNames    uint16_t Temperature; // Hi byte of temp reading
+	uint16_t Temperature;
     uint8_t MaxTargetTemp; // Max target temperature (fan control). 0xFF means no fan control.
     uint8_t NumBanks; // Number of banks for voltage readings
     uint16_t* VoltageBanks;// [NumBanks][2]; // Voltage on power banks (*10)
-    uint8_t TestMode; // Current test mode program (0 = off/live data)
-    uint8_t TestCols[4];
+    int TestMode; // Current test mode program (0 = off/live data)
+    int TestCols[4];
     uint8_t TestOutputNum;
     uint16_t TestPixelNum;
-	string Title;
 } T_AdvatekDevice;
 
 class ofxAdvatekAssistor {
@@ -92,8 +92,9 @@ public:
     void setup();
     void update();
     void poll();
-	void connect();
+	void connect(int d = -1);
 	void updateDevice(int d);
+	void setTest(int d);
 
     vector<T_AdvatekDevice*>& getDevices();
 	string addressString(uint8_t * address);
