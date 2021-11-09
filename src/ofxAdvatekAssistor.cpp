@@ -358,7 +358,7 @@ void ofxAdvatekAssistor::update() {
 
 		//---------
 
-		rec_data->OutputColOrder = new int[rec_data->NumOutputs];
+		rec_data->OutputColOrder = new uint8_t[rec_data->NumOutputs];
 		memcpy(rec_data->OutputColOrder, data, sizeof(uint8_t)*rec_data->NumOutputs);
 		data += rec_data->NumOutputs;
 
@@ -672,8 +672,39 @@ void ofxAdvatekAssistor::poll() {
 	udpConnection.Send(buf, 12);
 }
 
+//--------------------------------------------------------------
+
+void ofxAdvatekAssistor::bc_networkConfig(int d) {
+	connect();
+
+	std::vector<uint8_t> dataTape;
+	dataTape.resize(12);
+	dataTape[0] = 'A';
+	dataTape[1] = 'd';
+	dataTape[2] = 'v';
+	dataTape[3] = 'a';
+	dataTape[4] = 't';
+	dataTape[5] = 'e';
+	dataTape[6] = 'c';
+	dataTape[7] = 'h';
+	dataTape[8] = 0x00;   // Null Terminator
+	dataTape[9] = 0x00;   // OpCode
+	dataTape[10] = 0x07;  // OpCode
+	dataTape[11] = 0x08;  // ProtVer
+
+	dataTape.insert(dataTape.end(), devices[d]->Mac, devices[d]->Mac + 6);
+	
+	dataTape.push_back(devices[d]->DHCP);
+
+	dataTape.insert(dataTape.end(), devices[d]->StaticIP, devices[d]->StaticIP + 4);
+	dataTape.insert(dataTape.end(), devices[d]->StaticSM, devices[d]->StaticSM + 4);
+
+	udpConnection.Send((const char*)dataTape.data(), dataTape.size());
+
+}
 
 //--------------------------------------------------------------
+
 void insertSwapped16(std::vector<uint8_t> &dest, uint16_t* pData, int32_t size)
 {
 	for (int i = 0; i < size; i++)
