@@ -80,7 +80,39 @@ typedef struct sAdvatekDevice {
     int TestCols[4];
     uint8_t TestOutputNum;
     uint16_t TestPixelNum;
-} T_AdvatekDevice;
+} sAdvatekDevice;
+
+typedef struct sAdvatekConfig
+{
+	uint8_t ID[9]; // protocol ID = "Advatech", null terminated
+	uint16_t OpCode; // == AdvaConfig
+	uint8_t ProtVer; // adva protocol version
+	uint8_t Mac[6]; // MAC Address
+	uint8_t DHCP; // DHCP on or off
+	uint8_t StaticIP[4]; // Static IP address
+	uint8_t StaticSM[4]; // Static subnet mask
+	uint8_t Protocol; // 0 = sACN, 1 = artNet
+	uint8_t HoldLastFrame; // Hold last frame (timeout blank mode)
+	uint8_t SimpleConfig; // Simple = 0, or advanced config = 1 
+	uint16_t* OutputPixels;//[2 * NUM_OUTPUTS]; // number of nodes per string
+	uint16_t* OutputUniv;//[2 * NUM_OUTPUTS]; // Advanced start universes
+	uint16_t* OutputChan;//[2 * NUM_OUTPUTS]; // Advanced start channels
+	uint8_t* OutputNull;//[NUM_OUTPUTS]; // Null pixels
+	uint16_t* OutputZig;//[2 * NUM_OUTPUTS]; // Zig zags
+	uint8_t* OutputReverse;//[NUM_OUTPUTS]; // Reversed strings
+	uint8_t* OutputColOrder;//[NUM_OUTPUTS]; // RGB order for each output
+	uint16_t* OutputGrouping;//[2 * NUM_OUTPUTS]; // Pixel grouping
+	uint8_t* OutputBrightness;//[NUM_OUTPUTS]; // Brightness limiting
+	uint8_t* DmxOutOn;//[NUM_DMX_OUTPUTS]; // DMX outputs on or off
+	uint16_t* DmxOutUniv;//[2 * NUM_DMX_OUTPUTS]; // Hi and Lo bytes of DMX output universes
+	uint8_t CurrentDriver; // Current pixel protocol selection (index)
+	uint8_t CurrentDriverType; // RGB = 0, RGBW = 1
+	uint8_t CurrentDriverSpeed; // Output chip speed (0 = Slow, 1 = Fast) (2 - 10 = clock speeds 0.5 - 5 MHz)
+	uint8_t CurrentDriverExpanded; // Expanded/Condensed Mode
+	uint8_t Gamma[3]; // R, G & B Gamma
+	uint8_t Nickname[40]; // if the product has a nickname, null terminated
+	uint8_t MaxTargetTemp; // Max target temperature (fan control). 0xFF means no fan control.
+} sAdvatekConfig;
 
 class ofxAdvatekAssistor {
     
@@ -96,11 +128,12 @@ public:
 	void updateDevice(int d);
 	void setTest(int d);
 
-    vector<T_AdvatekDevice*>& getDevices();
+    vector<sAdvatekDevice*>& getDevices();
 	string addressString(uint8_t * address);
 
 	void setEndUniverseChannel(int startUniverse, int startChannel, int pixelCount, int outputGrouping, int &endUniverse, int &endChannel);
-
+	
+	static const uint8_t ProtVer = 8;
 	static const char* RGBW_Order[24];
 	static const char* DriverTypes[3];
 	static const char* DriverSpeeds[5];
@@ -108,7 +141,7 @@ public:
 	static const char* TestModes[9];
 
 private:
-    vector<T_AdvatekDevice*> devices;
+    vector<sAdvatekDevice*> devices;
     ofxUDPManager udpConnection;
 	bool deviceExist( uint8_t * Mac );
 };

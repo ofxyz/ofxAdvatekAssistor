@@ -674,15 +674,85 @@ void ofxAdvatekAssistor::poll() {
 
 
 //--------------------------------------------------------------
+void insertSwapped16(std::vector<uint8_t> &dest, uint16_t* pData, int32_t size)
+{
+	for (int i = 0; i < size; i++)
+	{
+		uint16_t data = pData[i];
+		//bswap_16(data);
+		//dest.insert(dest.end(), &data, &data + 1);
+		dest.push_back((uint8_t)(data >> 8));
+		dest.push_back((uint8_t)data);
+	}
+}
 
 void ofxAdvatekAssistor::updateDevice(int d) {
-	std::cout << "Update Device: " << d << std::endl;
+	// std::cout << "Update Device: " << d << std::endl;
+	connect(d);
+
+	std::vector<uint8_t> dataTape;
+	dataTape.resize(12);
+	dataTape[0] = 'A';
+	dataTape[1] = 'd';
+	dataTape[2] = 'v';
+	dataTape[3] = 'a';
+	dataTape[4] = 't';
+	dataTape[5] = 'e';
+	dataTape[6] = 'c';
+	dataTape[7] = 'h';
+	dataTape[8] = 0x00;   // Null Terminator
+	dataTape[9] = 0x00;   // OpCode
+	dataTape[10] = 0x05;  // OpCode
+	dataTape[11] = 0x08;  // ProtVer
+	
+	dataTape.insert(dataTape.end(), devices[d]->Mac, devices[d]->Mac + 6);
+	
+	dataTape.push_back(devices[d]->DHCP);
+	
+	dataTape.insert(dataTape.end(), devices[d]->StaticIP, devices[d]->StaticIP + 4);
+	dataTape.insert(dataTape.end(), devices[d]->StaticSM, devices[d]->StaticSM + 4);
+	
+	dataTape.push_back(devices[d]->Protocol);
+	dataTape.push_back(devices[d]->HoldLastFrame);
+	dataTape.push_back(devices[d]->SimpleConfig);
+	
+	//dataTape.insert(dataTape.end(), (uint8_t*)devices[d]->OutputPixels, (uint8_t*)devices[d]->OutputPixels + (devices[d]->NumOutputs*2));
+	insertSwapped16(dataTape, devices[d]->OutputPixels, devices[d]->NumOutputs);
+	insertSwapped16(dataTape, devices[d]->OutputUniv, devices[d]->NumOutputs);
+	insertSwapped16(dataTape, devices[d]->OutputChan, devices[d]->NumOutputs);
+	//dataTape.insert(dataTape.end(), (uint8_t*)devices[d]->OutputUniv, (uint8_t*)devices[d]->OutputUniv + (devices[d]->NumOutputs * 2));
+	//dataTape.insert(dataTape.end(), (uint8_t*)devices[d]->OutputChan, (uint8_t*)devices[d]->OutputChan + (devices[d]->NumOutputs * 2));
+	dataTape.insert(dataTape.end(), devices[d]->OutputNull, devices[d]->OutputNull + devices[d]->NumOutputs);
+	insertSwapped16(dataTape, devices[d]->OutputZig, devices[d]->NumOutputs);
+	//dataTape.insert(dataTape.end(), (uint8_t*)devices[d]->OutputZig, (uint8_t*)devices[d]->OutputZig + (devices[d]->NumOutputs * 2));
+	dataTape.insert(dataTape.end(), devices[d]->OutputReverse, devices[d]->OutputReverse + devices[d]->NumOutputs);
+	dataTape.insert(dataTape.end(), devices[d]->OutputColOrder, devices[d]->OutputColOrder + devices[d]->NumOutputs);
+	insertSwapped16(dataTape, devices[d]->OutputGrouping, devices[d]->NumOutputs);
+	//dataTape.insert(dataTape.end(), (uint8_t*)devices[d]->OutputGrouping, (uint8_t*)devices[d]->OutputGrouping + (devices[d]->NumOutputs * 2));
+	dataTape.insert(dataTape.end(), devices[d]->OutputBrightness, devices[d]->OutputBrightness + devices[d]->NumOutputs);
+	dataTape.insert(dataTape.end(), devices[d]->DmxOutOn, devices[d]->DmxOutOn + devices[d]->NumDMXOutputs);
+	insertSwapped16(dataTape, devices[d]->DmxOutUniv, devices[d]->NumDMXOutputs);
+	//dataTape.insert(dataTape.end(), (uint8_t*)devices[d]->DmxOutUniv, (uint8_t*)devices[d]->DmxOutUniv + (devices[d]->NumDMXOutputs * 2));
+
+	dataTape.push_back(devices[d]->CurrentDriver);
+	dataTape.push_back(devices[d]->CurrentDriverType);
+
+	dataTape.push_back(devices[d]->CurrentDriverSpeed);
+	dataTape.push_back(devices[d]->CurrentDriverExpanded);
+
+	dataTape.insert(dataTape.end(), devices[d]->Gamma, devices[d]->Gamma + 4);
+	dataTape.insert(dataTape.end(), devices[d]->Nickname, devices[d]->Nickname + 40);
+
+	dataTape.push_back(devices[d]->MaxTargetTemp);
+
+	udpConnection.Send((const char*)dataTape.data(), dataTape.size());
+
 }
 
 //--------------------------------------------------------------
 
 void ofxAdvatekAssistor::setTest(int d) {
-	std::cout << "Set Test Device: " << d << std::endl;
+	// std::cout << "Set Test Device: " << d << std::endl;
 	connect(d);
 
 	char buf[26];
@@ -724,7 +794,7 @@ void ofxAdvatekAssistor::setTest(int d) {
 
 
 //--------------------------------------------------------------
-vector<T_AdvatekDevice*>& ofxAdvatekAssistor::getDevices() {
+vector<sAdvatekDevice*>& ofxAdvatekAssistor::getDevices() {
 	return devices;
 }
 
