@@ -1,5 +1,7 @@
 #include "ofxAdvatekAssistor.h"
 
+#pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")   
+
 const char* ofxAdvatekAssistor::RGBW_Order[24] = {
 		"R-G-B/R-G-B-W",
 		"R-B-G/R-B-G-W",
